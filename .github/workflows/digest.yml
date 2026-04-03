@@ -2,7 +2,7 @@ name: Weekly Digest
 
 on:
   schedule:
-    - cron: "0 5 * * 5"  # Friday 08:00 Israel (UTC+3)
+    - cron: "0 5 * * 5"   # Friday 08:00 Israel (UTC+3)
   workflow_dispatch:
 
 jobs:
@@ -11,17 +11,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests openai
 
       - name: Run script
         env:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python digest.py
