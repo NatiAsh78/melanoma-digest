@@ -78,8 +78,25 @@ response = client.chat.completions.create(
 
 summary = response.choices[0].message.content
 
-# === EMAIL ===
-msg = MIMEText(summary, "plain")
+# === FORMAT HTML EMAIL ===
+
+html_content = "<h2 style='font-family:Arial;'>Weekly Melanoma Literature Digest</h2>"
+
+lines = summary.split("\n")
+
+for line in lines:
+    line = line.strip()
+    if not line:
+        continue
+
+    if line.startswith(tuple(f"{i})" for i in range(1, 11))):
+        html_content += f"<h3 style='font-family:Arial; color:#1a1a1a; font-size:22px; margin-top:24px;'>{line}</h3>"
+    elif line.startswith("http"):
+        html_content += f"<p style='font-family:Arial; font-size:14px; margin:6px 0;'><a href='{line}' target='_blank'>PubMed link</a></p>"
+    else:
+        html_content += f"<p style='font-family:Arial; font-size:14px; line-height:1.5; margin:8px 0;'>{line}</p>"
+
+msg = MIMEText(html_content, "html")
 msg["Subject"] = "Weekly Melanoma Literature Digest"
 msg["From"] = EMAIL
 msg["To"] = EMAIL
