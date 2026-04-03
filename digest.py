@@ -155,8 +155,8 @@ for line in lines:
     # Title (numbered)
     if line.startswith(tuple(f"{i})" for i in range(1, 11))):
         html_content += f"""
-        <div style='margin-top:28px'>
-        <div style='font-family:Arial; font-size:20px; font-weight:bold; color:#000;'>
+        <div style='margin-top:30px; padding-left:12px; border-left:4px solid #1a73e8;'>
+        <div style='font-family:Arial; font-size:26px; font-weight:bold; color:#000; line-height:1.3;'>
         {line}
         </div>
         """
@@ -164,8 +164,8 @@ for line in lines:
     # Journal line
     elif "Journal + date:" in line:
         html_content += f"""
-        <div style='font-family:Arial; font-size:13px; color:#666; margin-top:4px'>
-        {line.replace("Journal + date:", "")}
+        <div style='font-family:Arial; font-size:13px; color:#666; margin-top:6px;'>
+        {line.replace("Journal + date:", "").strip()}
         </div>
         """
 
@@ -174,8 +174,8 @@ for line in lines:
         url = line.split("http")[-1]
         url = "http" + url
         html_content += f"""
-        <div style='margin:6px 0 12px 0'>
-        <a href="{url}" style='font-family:Arial; font-size:13px; color:#1a73e8;' target='_blank'>
+        <div style='margin:8px 0 14px 0;'>
+        <a href="{url}" style='font-family:Arial; font-size:13px; color:#1a73e8; text-decoration:none;' target='_blank'>
         View on PubMed
         </a>
         </div>
@@ -184,29 +184,34 @@ for line in lines:
     # Key results → highlight
     elif "Key results:" in line:
         html_content += f"""
-        <div style='font-family:Arial; font-size:14px; margin-top:10px'>
-        <b>Key results:</b> <span style='color:#000'>{line.replace("Key results:", "")}</span>
+        <div style='font-family:Arial; font-size:15px; margin-top:12px; color:#111;'>
+        <b>Key results:</b> {line.replace("Key results:", "").strip()}
         </div>
         """
 
-    # Why it matters → subtle emphasis
+    # Why it matters → subtle emphasis and close section
     elif "Why it matters:" in line:
         html_content += f"""
-        <div style='font-family:Arial; font-size:14px; margin-top:6px; color:#333'>
-        <b>Why it matters:</b> {line.replace("Why it matters:", "")}
+        <div style='font-family:Arial; font-size:14px; margin-top:8px; color:#333;'>
+        <b>Why it matters:</b> {line.replace("Why it matters:", "").strip()}
         </div>
-        <hr style='margin-top:20px'>
+        </div>
+        <hr style='margin-top:22px; border:none; border-top:1px solid #ddd;'>
         """
 
     # Other fields
     else:
-        clean = line.replace("**", "").replace("Title:", "").replace("Study type:", "<b>Study type:</b>") \
-                    .replace("Population:", "<b>Population:</b>") \
-                    .replace("Clinical question:", "<b>Clinical question:</b>") \
-                    .replace("Limitations:", "<b>Limitations:</b>")
+        clean = (
+            line.replace("**", "")
+                .replace("Title:", "")
+                .replace("Study type:", "<b>Study type:</b>")
+                .replace("Population:", "<b>Population:</b>")
+                .replace("Clinical question:", "<b>Clinical question:</b>")
+                .replace("Limitations:", "<b>Limitations:</b>")
+        )
 
         html_content += f"""
-        <div style='font-family:Arial; font-size:14px; margin-top:6px; color:#333'>
+        <div style='font-family:Arial; font-size:14px; line-height:1.5; margin-top:8px; color:#333;'>
         {clean}
         </div>
         """
