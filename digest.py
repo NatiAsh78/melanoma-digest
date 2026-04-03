@@ -136,7 +136,14 @@ Articles:
     summary = response.choices[0].message.content
 
 # === FORMAT HTML EMAIL ===
-html_content = "<h2 style='font-family:Arial;'>Weekly Melanoma Literature Digest</h2>"
+
+html_content = """
+<h2 style='font-family:Arial; color:#111;'>Weekly Melanoma Literature Digest</h2>
+<p style='font-family:Arial; font-size:14px; color:#444;'>
+Top clinically relevant melanoma publications from the past week
+</p>
+<hr>
+"""
 
 lines = summary.split("\n")
 
@@ -145,13 +152,64 @@ for line in lines:
     if not line:
         continue
 
+    # Title (numbered)
     if line.startswith(tuple(f"{i})" for i in range(1, 11))):
-        html_content += f"<h3 style='font-family:Arial; color:#1a1a1a; font-size:22px; margin-top:24px;'>{line}</h3>"
-    elif line.startswith("http") or line.startswith("PubMed link:"):
-        url = line.replace("PubMed link:", "").strip()
-        html_content += f"<p style='font-family:Arial; font-size:14px; margin:6px 0;'><a href='{url}' target='_blank'>PubMed link</a></p>"
+        html_content += f"""
+        <div style='margin-top:28px'>
+        <div style='font-family:Arial; font-size:20px; font-weight:bold; color:#000;'>
+        {line}
+        </div>
+        """
+
+    # Journal line
+    elif "Journal + date:" in line:
+        html_content += f"""
+        <div style='font-family:Arial; font-size:13px; color:#666; margin-top:4px'>
+        {line.replace("Journal + date:", "")}
+        </div>
+        """
+
+    # PubMed link
+    elif "http" in line:
+        url = line.split("http")[-1]
+        url = "http" + url
+        html_content += f"""
+        <div style='margin:6px 0 12px 0'>
+        <a href="{url}" style='font-family:Arial; font-size:13px; color:#1a73e8;' target='_blank'>
+        View on PubMed
+        </a>
+        </div>
+        """
+
+    # Key results → highlight
+    elif "Key results:" in line:
+        html_content += f"""
+        <div style='font-family:Arial; font-size:14px; margin-top:10px'>
+        <b>Key results:</b> <span style='color:#000'>{line.replace("Key results:", "")}</span>
+        </div>
+        """
+
+    # Why it matters → subtle emphasis
+    elif "Why it matters:" in line:
+        html_content += f"""
+        <div style='font-family:Arial; font-size:14px; margin-top:6px; color:#333'>
+        <b>Why it matters:</b> {line.replace("Why it matters:", "")}
+        </div>
+        <hr style='margin-top:20px'>
+        """
+
+    # Other fields
     else:
-        html_content += f"<p style='font-family:Arial; font-size:14px; line-height:1.5; margin:8px 0;'>{line}</p>"
+        clean = line.replace("**", "").replace("Title:", "").replace("Study type:", "<b>Study type:</b>") \
+                    .replace("Population:", "<b>Population:</b>") \
+                    .replace("Clinical question:", "<b>Clinical question:</b>") \
+                    .replace("Limitations:", "<b>Limitations:</b>")
+
+        html_content += f"""
+        <div style='font-family:Arial; font-size:14px; margin-top:6px; color:#333'>
+        {clean}
+        </div>
+        """
 
 msg = MIMEText(html_content, "html")
 msg["Subject"] = "Weekly Melanoma Literature Digest"
