@@ -58,14 +58,21 @@ for pmid in ids:
 prompt = f"""
 You are a melanoma oncology expert.
 
-From the following list of articles:
+From the following articles:
 1. Select the 10 most clinically important papers
 2. Prioritize: RCTs, prospective studies, guidelines, reviews, real-world evidence
 3. Exclude basic science and lab studies
-4. For each selected paper provide:
-- Title
-- Short clinical summary (4-5 lines)
-- Why it matters
+
+For each paper provide:
+
+Numbered list (1–10)
+
+Title (on its own line)
+Journal + date
+PubMed link (use the provided link exactly)
+
+Clinical summary (4-5 lines)
+Why it matters (1-2 lines)
 
 Articles:
 {articles}
