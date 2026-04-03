@@ -1,13 +1,13 @@
 import requests
 from datetime import datetime, timedelta
 import os
+from openai import OpenAI
 import smtplib
 from email.mime.text import MIMEText
 
-# === CONFIG ===
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 EMAIL = "asher.nati@gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 # === DATE RANGE ===
@@ -15,69 +15,78 @@ today = datetime.today()
 last_week = today - timedelta(days=7)
 date_query = f"{last_week.strftime('%Y/%m/%d')}:{today.strftime('%Y/%m/%d')}"
 
-# === PUBMED SEARCH ===
+# === SEARCH PUBMED ===
 query = f"""
 (melanoma[Title] OR melanoma[MeSH Terms] OR uveal melanoma[Title] OR mucosal melanoma[Title])
 AND ({date_query}[Date - Publication])
 AND (english[Language])
 AND (humans[MeSH Terms])
-NOT (animals[MeSH Terms] NOT humans[MeSH Terms])
 """
 
-search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-params = {
-    "db": "pubmed",
-    "term": query,
-    "retmax": 50,
-    "retmode": "json"
-}
+search = requests.get(
+    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+    params={"db": "pubmed", "term": query, "retmax": 50, "retmode": "json"}
+)
 
-response = requests.get(search_url, params=params)
-ids = response.json()["esearchresult"]["idlist"]
+ids = search.json()["esearchresult"]["idlist"]
 
 # === FETCH DETAILS ===
-fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
-params = {
-    "db": "pubmed",
-    "id": ",".join(ids),
-    "retmode": "json"
-}
+fetch = requests.get(
+    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+    params={"db": "pubmed", "id": ",".join(ids), "retmode": "json"}
+)
 
-response = requests.get(fetch_url, params=params)
-data = response.json()["result"]
+data = fetch.json()["result"]
 
-# === BUILD EMAIL ===
 articles = []
 
-for pmid in ids[:20]:
+for pmid in ids:
     item = data[pmid]
     title = item.get("title", "")
     journal = item.get("fulljournalname", "")
     date = item.get("pubdate", "")
     link = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
 
-    articles.append(f"""
-    <p>
-    <b>{title}</b><br>
-    {journal} | {date}<br>
-    <a href="{link}">View on PubMed</a>
-    </p>
-    """)
+    articles.append({
+        "title": title,
+        "journal": journal,
+        "date": date,
+        "link": link
+    })
 
-html = f"""
-<h2>Weekly Melanoma Literature Digest</h2>
-{''.join(articles)}
+# === AI FILTER + RANK ===
+prompt = f"""
+You are a melanoma oncology expert.
+
+From the following list of articles:
+1. Select the 10 most clinically important papers
+2. Prioritize: RCTs, prospective studies, guidelines, reviews, real-world evidence
+3. Exclude basic science and lab studies
+4. For each selected paper provide:
+- Title
+- Short clinical summary (4-5 lines)
+- Why it matters
+
+Articles:
+{articles}
 """
 
-# === SEND EMAIL ===
-msg = MIMEText(html, "html")
+response = client.chat.completions.create(
+    model="gpt-5",
+    messages=[{"role": "user", "content": prompt}],
+)
+
+summary = response.choices[0].message.content
+
+# === EMAIL ===
+msg = MIMEText(summary, "plain")
 msg["Subject"] = "Weekly Melanoma Literature Digest"
 msg["From"] = EMAIL
 msg["To"] = EMAIL
 
-with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+with smtplib.SMTP("smtp.gmail.com", 587) as server:
     server.starttls()
     server.login(EMAIL, EMAIL_PASSWORD)
     server.send_message(msg)
 
-print("Email sent!")
+print("Sent!")
